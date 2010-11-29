@@ -1,0 +1,12 @@
+;; -*- scheme -*-
+
+(compile -s -O2 orly.scm -j orly)
+(compile -s -O2 orly.import.scm)
+(compile -c -O2 orly.scm -unit orly -j orly)
+
+(install-extension
+ 'orly
+ '("orly.so" "orly.import.so")
+ '((version 0.1)
+   (static "orly.o")
+   (documentation "orly.html")))

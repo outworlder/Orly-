@@ -1,0 +1,11 @@
+;; -*- scheme -*-
+
+((egg "orly.egg"
+      (synopsis "Orly? - An ORM for Chicken Scheme.")
+      (author "Stephen Eilert")
+      (category databases)
+      (licence "BSD")
+      (depends coops coops-primitive-objects aql sql-de-lite)
+      (doc-from-wiki)
+      (test-depends test)
+      (files "orly.scm" "orly.setup")))
