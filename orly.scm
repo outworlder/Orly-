@@ -1,5 +1,6 @@
 (module orly
   (orly-database-url
+   orly-debug
    <table>
    <model>
    define-model
@@ -10,13 +11,18 @@
    find-by-id
    find-all-by-id
    find-all-by-string
-   find-first-by-string)
+   find-first-by-string
+   insert-model
+   update-model)
 
   (import chicken scheme data-structures srfi-1 coops sql-de-lite)
 
   (define orly-database-url
     (make-parameter #f))
 
+  (define orly-debug
+    (make-parameter #f))
+  
   (define-class <table> ()
     (name columns (relationships initform: '())))
 
@@ -84,9 +90,28 @@
   (define-method (get-table-name (model <model>))
     (slot-value (get-table-class model) 'name))
 
+  (define-method (get-table-id (model <model>))
+    (car (list-columns model)))
+
   (define-method (list-columns (model <model>))
     (slot-value (get-table-class model) 'columns))
 
+  (define-method (insert-model (instance <model>))
+    (with-model (class-of instance)
+                (lambda (instance table-name table-columns)
+                  (execute-sql `(insert ,table-name ,table-columns ,(map (lambda (i) '?) table-columns)))
+                  (let ([inserted-id 
+                         (car (execute-sql "select last_insert_rowid() as last_insert_rowid"))])
+                    (set! (slot-value instance (get-table-id)) inserted-id)
+                    instance))))
+
+  (define-method (update-model (instance <model>))
+    (with-model (class-of instance)
+                (lambda (instance table-name table-columns)
+                  (let ([values (map (lambda (column)
+                                       (slot-value instance column)))])
+                    (execute-sql `(update ,table-name ,(zip table-columns values)))))))
+  
   (define (find-all class #!key conditions)
     (with-model class
                 (lambda (class table-name table-columns)
@@ -130,7 +155,8 @@
   (define (execute-sql stmt)
     (call-with-database (orly-database-url)
                         (lambda (database)
-                          (print "Executing: " stmt)
+                          (if (orly-debug)
+                              (print "Executing: " stmt))
                           (query fetch-all (sql database stmt)))))
 
   (define (load-data class data)
@@ -143,4 +169,4 @@
                                  (set! (slot-value newobject model-column) column)) row (list-columns newobject))
                      newobject)) data))
         #f))
-  )
+  )                                     ; End module
