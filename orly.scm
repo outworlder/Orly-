@@ -1,11 +1,14 @@
 (module orly
-  (orly-database-url 
+  (orly-database-url
+   <table>
+   <model>
    define-model
    has-many
    belongs-to
    find-all
    find-first
    find-by-id
+   find-all-by-id
    find-all-by-string
    find-first-by-string)
 
