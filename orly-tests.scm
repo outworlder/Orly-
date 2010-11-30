@@ -31,7 +31,10 @@ SQLSTRUCTURE
 
 (define database-data
 #<<SQLDATA
-insert into test1 values (1, "col2", "col3");
+begin transaction;  
+insert into test1 (id, col2, col3) values (1, "col2", "col3");
+insert into test1 (id, col2, col3) values (2, "col22", "col23");
+end transaction;
 SQLDATA
   )
 
@@ -58,6 +61,7 @@ SQLDATA
 
 (test-group "Queries"
             (test "Should be able to query a record by id" (make <test1> 'id 1 'col2 "col2" 'col3 "col3") (find-by-id <test1> 1))
-            (test "Should return an empty list if a record is not found" '() (find-by-id <test1> 99999)))
+            (test "Should return an empty list if a record is not found" '() (find-by-id <test1> 99999))
+            (test "Should return a list of all rows in the database" 2 (length (find-all <test1>))))
 
 (delete-file (orly-database-url))
