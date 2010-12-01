@@ -7,37 +7,28 @@
 
 (orly-database-url "orly-test.db")
 
-(define database-structure
-#<<SQLSTRUCTURE
-CREATE TABLE test1 (
-                    "id" INTEGER,
-                    "col2" TEXT,
-                    "col3" TEXT
-                    )                   ;
+(if (file-exists? (orly-database-url))
+    (delete-file (orly-database-url)))
 
-CREATE TABLE test_parent (
-    "id" INTEGER,
-    "col2" TEXT,
-    "col3" TEXT
-    );
+(define database-fixtures
+  '("CREATE TABLE test1 (
+                    id INTEGER,
+                    col2 TEXT,
+                    col3 TEXT
+                    );"
+    "CREATE TABLE test_parent (
+    id INTEGER,
+    col2 TEXT,
+    col3 TEXT
+   );"
+    "CREATE TABLE test_child (
+                         id INTEGER,
+                         parent_id TEXT,
+                         col3 TEXT
+                         );"
 
-CREATE TABLE test_child (
-    "id" INTEGER,
-    "parent_id" TEXT,
-    "col3" TEXT
-    );
-SQLSTRUCTURE
-)
-
-(define database-data
-#<<SQLDATA
-begin transaction;  
-insert into test1 (id, col2, col3) values (1, "col2", "col3");
-insert into test1 (id, col2, col3) values (2, "col22", "col23");
-end transaction;
-SQLDATA
-  )
-
+    "insert into test1 (id, col2, col3) values (1, \"col2\", \"col3\");"
+    "insert into test1 (id, col2, col3) values (2,\"col22\", \"col23\");"))
 
 (define-model <test1> "test1"
   (id col2 col3))
@@ -53,9 +44,9 @@ SQLDATA
 (belongs-to <test-child> <test-parent> parent foreign-key: parent_id)
 
 (for-each (lambda (stmt)
-       (call-with-database (orly-database-url)
-                           (lambda (database)
-                             (query fetch-all (sql database stmt))))) (list database-structure database-data))
+            (call-with-database (orly-database-url)
+                                (lambda (database)
+                                  (exec (sql database stmt))))) database-fixtures)
 
 ;;; TODO: Execute SQL here.
 
