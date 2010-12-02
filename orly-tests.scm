@@ -6,6 +6,7 @@
 (use orly)
 
 (orly-database-url "orly-test.db")
+(orly-debug #t)
 
 (if (file-exists? (orly-database-url))
     (delete-file (orly-database-url)))
@@ -53,6 +54,12 @@
 (test-group "Queries"
             (test "Should be able to query a record by id" (make <test1> 'id 1 'col2 "col2" 'col3 "col3") (find-by-id <test1> 1))
             (test "Should return an empty list if a record is not found" '() (find-by-id <test1> 99999))
-            (test "Should return a list of all rows in the database" 2 (length (find-all <test1>))))
+            (test "Should return a list of all rows in the database" 2 (length (find-all <test1>)))
+            (test "Should be able to find by ID and a condition" (make <test1> 'id 1 'col2 "col2" 'col3 "col3") (find-by-id <test1> 1 conditions: `(where (= 'col2 "'col2'"))))
+            (test "Should be able to find all records with a condition"
+                  (list (make <test1> 'id 1 'col2 "col2" 'col3 "col3"))
+                  (find-all <test1> conditions: `(where (= 'col2 "col2")))))
+
+;(test-group "Relationships")
 
 (delete-file (orly-database-url))
