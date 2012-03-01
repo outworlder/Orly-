@@ -51,9 +51,8 @@
   (define-syntax define-model
     (syntax-rules ()
       ([_ model-name database-table-name (table-columns ...)]
-       (let ([table-definition (make <table> 'name 'database-table-name 'columns '(table-columns ...))])
-         (define-class model-name (<model>)
-           (table-columns ... (table initform: table-definition) )) ))))
+       (define-class model-name (<model>)
+         (table-columns ... (table initform: (make <table> 'name 'database-table-name 'columns '(table-columns ...))) )) )))
 
   (define-syntax has-many
     (syntax-rules (foreign-key: primary-key:)
