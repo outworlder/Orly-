@@ -1,7 +1,15 @@
 (use test)
+(use ssql)
 
 (load "new-orly")
-(load "sqlite-database-adapter")
+(load "database-adapter")
+(load "dummy-database-adapter")
+(load "sqlite-database-adapter-tests")
+
+(define-class <test-model> (<model-base>)
+  ((adapter (make <dummy-database-adapter>))
+   (table 'test)
+   (attributes '((a . 0) (b . 1)))))
 
 (test-group "Base model"
             (test-assert "Creates a new model"
@@ -28,22 +36,23 @@
                                               (slot-value model 'attributes)))))))
 
 ;;; Note, multiple inserts: http://stackoverflow.com/questions/1609637/is-it-possible-to-insert-multiple-rows-at-a-time-in-an-sqlite-database/5009740#5009740
-(test-group "Database tests (using Sqlite)"
-            (let ((connection (db-connect (make <sqlite-database-adapter>) "test.sqlite")))
-              (test-group "'Execute' statements"
-                          (test "Dropping any existing tables"
-                                0
-                                (db-execute connection "drop table if exists test;"))
-                          (test "Creating a table"
-                                0
-                                (db-execute connection "create table test(x integer primary key asc, y);"))
-                          (test "Test data insertion"
-                                3
-                                (db-execute connection "insert into 'test' select null as x, 't1' as 'y' union select null, 't2' union select null, 't3';")))
-              (test-group "Fetch statemetnts"
-                          (test "Count the number of items in the table"
-                                3
-                                (car (db-execute connection "select count(*) from test;")))
-                          (test "Retrieve the items"
-                                '((1 "t1") (2 "t2") (3 "t3"))
-                                (db-fetch connection "select * from test;")))))
+(test-group "Database calls"
+            (let ((connection (db-connect (make <dummy-database-adapter>) "sadf")))
+              (let ((model1 (make <test-model> 'connection connection))
+                    (model2 (make <test-model> 'connection connection)))
+                (test-group "Insert"
+                            (test "Persistence flag - unsaved"
+                                  #f
+                                  (or (slot-value model1 'persisted) (slot-value model2 'persisted)))
+                            (save model1)
+                            (save model2)
+                            (test "Generated SQL"
+                                  (ssql->sql #f '(insert (into test) (columns a b) (values 0 1)))
+                                  (slot-value connection 'last-statement))
+                            (test "Number of inserted models"
+                                  2
+                                  (slot-value connection 'execute-count)))
+                (test-group "Update"
+                            (test "Persistence flag - saved"
+                                  #t
+                                  (and (slot-value model1 'persisted) (slot-value model2 'persisted)))))))

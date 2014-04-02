@@ -1,6 +1,9 @@
 (use coops)
 (use coops-primitive-objects)
 
+(define orly-database-url (make-parameter #f))
+(define orly-debug (make-parameter #f))
+
 (define-class <database-adapter> ())
 (define-class <connection> ()
   ((open #f)))

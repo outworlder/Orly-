@@ -3,9 +3,6 @@
 (use ssql)
 (use sql-de-lite)
 
-(define orly-database-url (make-parameter #f))
-(define orly-debug (make-parameter #f))
-
 (load "database-adapter")
 
 ;; (define-model (<name> <parent>)
@@ -23,7 +20,9 @@
 ;;   has-many: '(<inventory-groups> foreign-key: categoryID))
 
 (define-class <model-base> ()
-  ((connection #f)
+  ((persisted #f)
+   (adapter #f)
+   (connection #f)
    (table #f)
    (attributes '())))
 
@@ -44,12 +43,37 @@
       (print "NO TABLE DEFINED!")))
 
 (define-method (search (model <model-base>))
-  (fetch (slot-value model 'connection)
-         (ssql->sql #f `(select (attributes ,@(slot-value model 'attributes))
-                          (from ,(slot-value model 'table))))))
+  (let ((adapter (slot-value model 'adapter)))
+    (if adapter
+        (let ((results
+               (db-fetch (slot-value model 'connection)
+                      (ssql->sql #f `(select ,(get-columns model)
+                                             (from ,(slot-value model 'table)))))))
+          (map (lambda (item)
+                 (set-attributes model item)) results)))))
 
 (define-method (search before: (model <model-base>))
   (check-attributes model))
+
+(define-method (save (model <model-base>))
+  (let ((connection (slot-value model 'connection)))
+    (if connection
+        (let ((result
+               (db-execute connection (if (slot-value model 'persisted)
+                                          (update model)
+                                          (insert model)))))
+          (if (eq? result 1)
+              (set! (slot-value model 'persisted) #t)
+              (print result))))))
+
+(define-method (insert (model <model-base>))
+  (ssql->sql #f `(insert (into ,(slot-value model 'table))
+                         ,(get-insert-columns model)
+                         ,(get-insert-values model))))
+
+(define-method (update (model <model-base>))
+  (ssql->sql #f `(update (table ,(slot-value model 'table))
+                         (set ,@(slot-value model 'attributes)))))
 
 (define-method (set-attribute (model <model-base>) (name <symbol>) value)
   (let ((data (assoc name (slot-value model 'attributes))))
@@ -63,6 +87,21 @@
 (define-method (set-attributes (model <model-base>) (attributes <list>))
   (for-each (lambda (x)
          (set-attribute model (car x) (cadr x))) attributes))
+
+;;; This should not be exported
+(define-method (get-update-columns (model <model-base>))
+  `(columns ,@(map (lambda (attr)
+                     `(=,(car attr) ,(cdr attr))) (slot-value model 'attributes))))
+
+(define-method (get-insert-columns (model <model-base>))
+  `(columns ,@(map (lambda (attr)
+                    (car attr)) (slot-value model 'attributes))))
+
+(define-method (get-insert-values (model <model-base>))
+  `(values ,@(map (lambda (attr)
+                    (cdr attr)) (slot-value model 'attributes))))
+
+
 
   ;; ;;; Without any macros
 ;; (define-class <inventory-categories> <model-base>

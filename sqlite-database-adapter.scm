@@ -1,5 +1,3 @@
-(load "database-adapter")
-
 (use sql-de-lite)
 
 (define-class <sqlite-connection> (<connection>)
