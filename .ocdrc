@@ -1,0 +1,7 @@
+(require-extension ocd)
+(import ocd)
+
+(print "Loading Orly?'s ocdrc")
+(ocd-run-command "csi -b new-orly-tests.scm")
+(ocd-filename-filter '("*.scm" "*.system" "tests"))
+(print (ocd-filename-filter))
