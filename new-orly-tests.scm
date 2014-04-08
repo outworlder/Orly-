@@ -8,6 +8,7 @@
 
 (define-class <test-model> (<model-base>)
   ((adapter (make <dummy-database-adapter>))
+   (connection (db-connect (make <dummy-database-adapter>) ""))
    (table 'test)
    (attributes '((a . 0) (b . 1)))))
 
@@ -55,4 +56,17 @@
                 (test-group "Update"
                             (test "Persistence flag - saved"
                                   #t
-                                  (and (slot-value model1 'persisted) (slot-value model2 'persisted)))))))
+                                  (and (slot-value model1 'persisted)
+                                       (slot-value model2 'persisted))))
+                (test-group "Find (Search)"
+                            (reset-counters! connection)
+                            (dummy-set-fetch-return connection
+                                                    (lambda ()
+                                                      '(((a 0) (b 1)))))
+                            (search (make <test-model> 'connection connection))
+                            (test "Issues a select statement to the database"
+                                  1
+                                  (slot-value connection 'fetch-count))
+                            (test "Object is returned back in a list"
+                                  (make <test-model>)
+                                  (car (search (make <test-model> 'connection connection))))))))

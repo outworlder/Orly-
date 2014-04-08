@@ -1,5 +1,7 @@
 (use miscmacros)
 
+(define *return* (lambda () #f))
+
 (define-class <dummy-connection> (<connection>)
   ((execute-count 0)
    (fetch-count 0)
@@ -18,9 +20,13 @@
 
 (define-method (db-fetch (connection <dummy-connection>) (raw-sql <string>))
   (inc! (slot-value connection 'fetch-count))
-  (set! (slot-value connection 'last-statement) raw-sql))
+  (set! (slot-value connection 'last-statement) raw-sql)
+  (*return*))
 
 (define-method (reset-counters! (connection <dummy-connection>))
   (set! (slot-value connection 'fetch-count) 0)
   (set! (slot-value connection 'execute-count) 0)
   (set! (slot-value connection 'last-statement) #f))
+
+(define-method (dummy-set-fetch-return (connection <dummy-connection>) (f <procedure>))
+  (set! *return* f))

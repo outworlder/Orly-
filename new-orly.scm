@@ -21,7 +21,6 @@
 
 (define-class <model-base> ()
   ((persisted #f)
-   (adapter #f)
    (connection #f)
    (table #f)
    (attributes '())))
@@ -43,14 +42,19 @@
       (print "NO TABLE DEFINED!")))
 
 (define-method (search (model <model-base>))
-  (let ((adapter (slot-value model 'adapter)))
-    (if adapter
+  (let ((connection (slot-value model 'connection)))
+    (if connection
         (let ((results
                (db-fetch (slot-value model 'connection)
-                      (ssql->sql #f `(select ,(get-columns model)
-                                             (from ,(slot-value model 'table)))))))
+                         (ssql->sql #f `(select ,(get-columns model)
+                                                (from ,(slot-value model 'table)))))))
+          (print "Results: " results)
           (map (lambda (item)
-                 (set-attributes model item)) results)))))
+                 (print "Item: " item)
+                 ;; This stinks. We need to be able to create any model
+                 (let ((new-model (make <model-base>)))
+                   (set-attributes model item)
+                   new-model)) results)))))
 
 (define-method (search before: (model <model-base>))
   (check-attributes model))
@@ -64,11 +68,11 @@
                                           (insert model)))))
           (if (eq? result 1)
               (set! (slot-value model 'persisted) #t)
-              (print result))))))
+              result)))))
 
 (define-method (insert (model <model-base>))
   (ssql->sql #f `(insert (into ,(slot-value model 'table))
-                         ,(get-insert-columns model)
+                         ,(get-columns model)
                          ,(get-insert-values model))))
 
 (define-method (update (model <model-base>))
@@ -93,7 +97,7 @@
   `(columns ,@(map (lambda (attr)
                      `(=,(car attr) ,(cdr attr))) (slot-value model 'attributes))))
 
-(define-method (get-insert-columns (model <model-base>))
+(define-method (get-columns (model <model-base>))
   `(columns ,@(map (lambda (attr)
                     (car attr)) (slot-value model 'attributes))))
 
